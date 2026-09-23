@@ -1,0 +1,73 @@
+import { test, expect } from '@playwright/test';
+
+test('all tools work, invalid output cannot be copied, input remains when switching', async ({ page }) => {
+  const errors = [];
+  page.on('pageerror', (error) => errors.push(error.message));
+  await page.goto('/');
+  await page.locator('#input').fill('안녕 세상');
+  await expect(page.locator('.metric.featured strong')).toHaveText('5자');
+  await page.goto('/#cleanup');
+  await page.locator('#input').fill('  가    나  \n\n다');
+  await expect(page.locator('#output')).toHaveValue('가 나\n\n다');
+  await page.locator('#empty').check();
+  await expect(page.locator('#output')).toHaveValue('가 나\n다');
+  await page.goto('/#unique');
+  await page.locator('#input').fill('기획\n개발\n기획');
+  await expect(page.locator('#output')).toHaveValue('기획\n개발');
+  await page.goto('/#list');
+  await page.locator('#input').fill('준비\n완료');
+  await page.locator('#list-mode').selectOption('check');
+  await expect(page.locator('#output')).toHaveValue('- [ ] 준비\n- [ ] 완료');
+  await page.goto('/#dates');
+  await page.locator('#date-start').fill('2026-09-18');
+  await page.locator('#date-end').fill('2026-09-21');
+  await expect(page.locator('#date-result .big-number')).toHaveText('3일');
+  await page.locator('#date-end').fill('2026-09-17');
+  await expect(page.locator('#copy')).toBeDisabled();
+  await page.goto('/#percent');
+  await expect(page.locator('#percent-result')).toHaveText('15,000');
+  await page.locator('#percent-mode').selectOption('ratio');
+  await page.locator('#number-b').fill('0');
+  await expect(page.locator('#feedback')).toContainText('0일 수 없습니다');
+  await page.goto('/#json');
+  await page.locator('#input').fill('{"hello":"안녕"}');
+  await expect(page.locator('#output')).toHaveValue('{\n  "hello": "안녕"\n}');
+  await page.locator('#input').fill('{bad}');
+  await expect(page.locator('#copy')).toBeDisabled();
+  await page.goto('/#table');
+  await page.locator('#input').fill('이름\t팀\n민수\t기획');
+  await expect(page.locator('#output')).toHaveValue('| 이름 | 팀 |\n| --- | --- |\n| 민수 | 기획 |');
+  await page.locator('#table-mode').selectOption('csv');
+  const download = page.waitForEvent('download');
+  await page.locator('#download').click();
+  expect((await download).suggestedFilename()).toBe('simple-utils-table.csv');
+  await page.goto('/#counter');
+  await expect(page.locator('#input')).toHaveValue('안녕 세상');
+  expect(errors).toEqual([]);
+});
+
+test('search and filters work and mobile layout does not overflow', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto('/');
+  await page.locator('#tool-search').fill('엑셀');
+  await expect(page.locator('.tool-card')).toHaveCount(1);
+  await page.locator('#tool-search').fill('없는도구');
+  await expect(page.locator('.empty-search')).toBeVisible();
+  await page.locator('#tool-search').fill('');
+  await page.getByRole('button', { name: '계산', exact: true }).click();
+  await expect(page.locator('.tool-card')).toHaveCount(2);
+  await page.locator('.tool-card[href="#dates"]').click();
+  await expect(page.locator('#tool-title')).toHaveText('날짜 계산');
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBeTruthy();
+  await page.goto('/#counter');
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBeTruthy();
+});
+
+test('copy uses browser clipboard, pasted HTML is never executed', async ({ page, context }) => {
+  await context.grantPermissions(['clipboard-read', 'clipboard-write']);
+  await page.goto('/#unique');
+  await page.locator('#input').fill('<img src=x onerror=alert(1)>\n안녕');
+  await page.locator('#copy').click();
+  expect(await page.evaluate(() => navigator.clipboard.readText())).toBe('<img src=x onerror=alert(1)>\n안녕');
+  await expect(page.locator('.workbench img')).toHaveCount(0);
+});
