@@ -1,4 +1,5 @@
 import { countText, cleanText, uniqueLines, convertList, dateDifference, percentage, formatJSON, convertTable } from './utils.js';
+import { renderScientific, renderGraph, renderLunar } from './advanced-tools.js';
 
 const paths = {
   type: '<path d="M4 5h16M12 5v15M8 20h8M4 5v3M20 5v3"/>',
@@ -7,6 +8,9 @@ const paths = {
   list: '<path d="M9 6h12M9 12h12M9 18h12M3 5h1v3M3 11h2l-2 3h2M3 17h2v3H3"/>',
   calendar: '<rect x="3" y="5" width="18" height="16" rx="3"/><path d="M16 3v4M8 3v4M3 11h18M8 15h2M14 15h2"/>',
   percent: '<path d="m5 19 14-14"/><circle cx="7" cy="7" r="3"/><circle cx="17" cy="17" r="3"/>',
+  calculator: '<rect x="4" y="2" width="16" height="20" rx="3"/><path d="M8 6h8M8 11h1m6 0h1M8 15h1m6 0h1M8 19h1m6 0h1"/>',
+  graph: '<path d="M3 3v18h18M5 16c4 0 3-11 7-11s3 11 8 11"/>',
+  moon: '<path d="M20.8 13A9 9 0 0 1 11 3.2 9 9 0 1 0 20.8 13z"/>',
   code: '<path d="m8 6-6 6 6 6m8-12 6 6-6 6m-3-15-2 18"/>',
   table: '<rect x="3" y="3" width="18" height="18" rx="3"/><path d="M3 9h18M3 15h18M9 3v18"/>',
   search: '<circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 5 5"/>',
@@ -27,6 +31,9 @@ const tools = [
   { id: 'unique', name: '중복 줄 제거', group: '텍스트', icon: 'unique', desc: '반복된 항목은 한 번만. 목록에서 필요한 내용만 남기세요.', short: '겹치는 항목 없이 간결하게', sample: '기획팀\n디자인팀\n개발팀\n기획팀\n운영팀\n개발팀', tags: '중복 목록 unique', tip: '처음 나타난 항목을 남기고 빈 줄은 제외합니다. 대소문자 구분과 정렬 여부도 선택할 수 있어요.' },
   { id: 'list', name: '목록 변환', group: '텍스트', icon: 'list', desc: '한 줄에 하나씩 적으면, 바로 붙여 넣을 수 있는 목록이 됩니다.', short: '번호·글머리·체크리스트', sample: '회의 안건 준비\n주간 보고서 작성\n팀 피드백 정리\n다음 일정 공유', tags: '번호 체크리스트 쉼표 bullet', tip: '빈 줄은 자동으로 제외합니다. 체크리스트 형식은 Markdown을 지원하는 문서에 붙여 넣기 좋아요.' },
   { id: 'dates', name: '날짜 계산', group: '계산', icon: 'calendar', desc: '일정 사이의 날짜와 평일 수를 간편하게 계산하세요.', short: '두 날짜 사이, 얼마나 남았을까', tags: '기간 일수 평일 주말 date', tip: '기본 계산은 시작일을 포함하고 종료일은 제외합니다. 평일은 월~금 기준이며 공휴일은 제외하지 않아요.' },
+  { id: 'scientific', name: '공학용 계산기', group: '계산', icon: 'calculator', desc: '사칙연산부터 삼각함수까지. 버튼과 키보드로 편하게 계산하세요.', short: '숫자키로 빠르게, 공학 계산까지', tags: '일반 계산기 공학 키보드 사칙연산 삼각함수 로그 scientific calculator', tip: 'Enter로 계산, Esc로 초기화합니다. sin·cos·tan의 DEG/RAD 단위를 확인하세요. %는 ÷100이며 부동소수점 근삿값을 사용합니다.' },
+  { id: 'graph', name: '함수 그래프', group: '계산', icon: 'graph', desc: '수식으로 그리는 곡선. 범위를 바꾸고 좌표를 살펴보세요.', short: 'y = f(x)를 눈으로 확인하기', tags: '공학 함수 그래프 차트 plot sin cos x 그래프계산기', tip: 'x를 변수로 사용하세요. x^2, sin(x), 2x, ln(x) 등을 지원합니다. 근사 그래프이므로 매우 좁은 구간이나 빠른 진동은 축 범위를 좁혀 확인하세요.' },
+  { id: 'lunar', name: '양력·음력 변환', group: '계산', icon: 'moon', desc: '한국 음력 기준으로 날짜를 변환하고 윤달 여부를 확인하세요.', short: '생일과 기념일, 윤달까지 정확히', tags: '양력 음력 윤달 생일 기념일 달력 lunar solar', tip: '음력 날짜가 같아도 평달과 윤달은 양력 날짜가 달라요. 한국 음력 변환표(korean-lunar-calendar)를 브라우저에서 처리하며 2050년까지 지원합니다.' },
   { id: 'percent', name: '퍼센트 계산', group: '계산', icon: 'percent', desc: '비율, 백분율, 증감률. 복잡한 계산식 없이 숫자만 입력하세요.', short: '비율과 증감률을 빠르게', tags: '비율 증감률 퍼센트 할인 percent', tip: '증감률은 (변경 값 − 기존 값) ÷ |기존 값| × 100으로 계산합니다. 결과는 소수점 여섯 자리까지 표시해요.' },
   { id: 'json', name: 'JSON 정리', group: '데이터', icon: 'code', desc: '읽기 어려운 JSON을 정돈하고 문법 오류를 확인하세요.', short: '데이터를 보기 좋은 형태로', sample: '{"project":"Simple Utils","version":1,"tools":["텍스트","계산","데이터"],"free":true}', tags: 'json 포맷 검증 pretty', tip: 'JSON 문법을 확인한 뒤 들여쓰기를 적용합니다. JavaScript 숫자 정밀도를 넘는 긴 ID는 문자열로 감싸서 사용하세요.' },
   { id: 'table', name: '표 변환', group: '데이터', icon: 'table', desc: '엑셀에서 복사한 표를 Markdown 표나 CSV로 바꾸세요.', short: '엑셀 표를 문서와 연결하기', sample: '항목\t담당자\t상태\n기획\t김민수\t완료\n디자인\t이서연\t진행 중\n개발\t박지훈\t예정', tags: '엑셀 tsv csv markdown 표', tip: '엑셀이나 스프레드시트에서 셀 영역을 복사해 붙여 넣으세요. 첫 행은 Markdown 표의 제목 행이 됩니다. CSV는 수식으로 해석될 내용을 포함할 수 있으니 외부 자료는 확인 후 여세요.' },
@@ -35,13 +42,14 @@ const drafts = Object.fromEntries(tools.map((tool) => [tool.id, '']));
 let active = tools.find((tool) => `#${tool.id}` === location.hash) || tools[0];
 let currentOutput = '';
 let toastTimer;
+let cleanupTool;
 const $ = (selector) => document.querySelector(selector);
 const fmt = (n) => n.toLocaleString('ko-KR', { maximumFractionDigits: 6 });
 
 $('#app').innerHTML = `
   <aside class="sidebar">
     <a class="brand" href="#counter" aria-label="Simple Utils 홈"><span class="brand-mark">s<span>u</span></span><span>simple<span class="brand-light">utils</span><small>작지만 쓸모있는 도구들</small></span></a>
-    <div class="nav-heading">WORKSPACE <span>08</span></div>
+    <div class="nav-heading">WORKSPACE <span>${tools.length}</span></div>
     <nav id="navigation" aria-label="유틸리티 선택"></nav>
     <div class="sidebar-note"><span class="note-icon">${icon('shield')}</span><strong>당신의 데이터는, 당신에게만.</strong><p>입력한 내용은 서버로 전송하지 않고<br>이 브라우저에서만 처리해요.</p><span class="local-label"><i></i> 브라우저 내 처리</span></div>
     <div class="sidebar-bottom"><span class="mini-brand">su.</span><span>LESS BUSY. MORE SIMPLE.</span></div>
@@ -50,7 +58,7 @@ $('#app').innerHTML = `
     <header class="topbar"><div class="breadcrumb">내 작업 공간 ${icon('chevron')} <span id="crumb">텍스트</span></div><span class="top-label">${icon('sun')} 오늘도, 조금 더 간단하게</span><a class="github-link" href="https://github.com/shhyceo-hub/simple-utils" target="_blank" rel="noopener noreferrer">GitHub ↗</a></header>
     <main id="workspace" tabindex="-1">
       <section class="intro"><div><span class="eyebrow"><i></i> YOUR EVERYDAY TOOLKIT</span><h1>작은 도구, <span>가벼운 업무.</span></h1><p>매일 반복되는 작업을 조금 더 쉽고 빠르게.</p></div><div class="intro-art" aria-hidden="true"><span class="art-sheet"><b>Aa</b><i></i><i></i></span><span class="art-check">${icon('check')}</span><span class="art-spark">✳</span></div></section>
-      <div class="discovery"><div class="filter-tabs" role="group" aria-label="도구 카테고리"><button class="filter active" data-group="전체">전체 도구 <span>8</span></button><button class="filter" data-group="텍스트">텍스트</button><button class="filter" data-group="계산">계산</button><button class="filter" data-group="데이터">데이터</button></div><label class="search">${icon('search')}<input id="tool-search" type="search" placeholder="필요한 도구 찾기" aria-label="도구 검색"><kbd>/</kbd></label></div>
+      <div class="discovery"><div class="filter-tabs" role="group" aria-label="도구 카테고리"><button class="filter active" data-group="전체">전체 도구 <span>${tools.length}</span></button><button class="filter" data-group="텍스트">텍스트</button><button class="filter" data-group="계산">계산</button><button class="filter" data-group="데이터">데이터</button></div><label class="search">${icon('search')}<input id="tool-search" type="search" placeholder="필요한 도구 찾기" aria-label="도구 검색"><kbd>/</kbd></label></div>
       <div id="tool-cards" class="tool-cards" aria-label="도구 목록"></div>
       <section class="workbench" aria-labelledby="tool-title"><div class="workbench-header"><div class="tool-heading"><span class="tool-symbol" id="tool-symbol"></span><div><div class="title-line"><h2 id="tool-title"></h2><span class="live-badge"><i></i> 실시간</span></div><p id="tool-description"></p></div></div><button class="text-button" id="sample-button">${icon('spark')} 예시 불러오기</button></div><div id="tool-body"></div></section>
       <div class="bottom-notes"><p>${icon('shield')} 가입 없이, 설치 없이, 데이터 전송 없이.</p><p>${icon('info')} <span id="tool-tip"></span></p></div>
@@ -80,6 +88,8 @@ function options() {
 }
 
 function renderTool() {
+  cleanupTool?.();
+  cleanupTool = undefined;
   currentOutput = '';
   $('#tool-title').textContent = active.name;
   $('#tool-description').textContent = active.desc;
@@ -92,6 +102,9 @@ function renderTool() {
   renderCards();
   if (active.id === 'dates') renderDates();
   else if (active.id === 'percent') renderPercent();
+  else if (active.id === 'scientific') cleanupTool = renderScientific({ copy });
+  else if (active.id === 'graph') cleanupTool = renderGraph();
+  else if (active.id === 'lunar') cleanupTool = renderLunar({ copy });
   else renderText();
 }
 
@@ -196,5 +209,5 @@ document.querySelectorAll('.filter').forEach((el) => {
   el.addEventListener('click', () => { document.querySelectorAll('.filter').forEach((tab) => { tab.classList.toggle('active', el === tab); tab.setAttribute('aria-pressed', String(el === tab)); }); renderCards(); });
 });
 window.addEventListener('hashchange', () => { active = tools.find((tool) => `#${tool.id}` === location.hash) || tools[0]; renderTool(); });
-document.addEventListener('keydown', (event) => { if (event.key === '/' && !['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName)) { event.preventDefault(); $('#tool-search').focus(); } });
+document.addEventListener('keydown', (event) => { if (active.id !== 'scientific' && event.key === '/' && !['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName)) { event.preventDefault(); $('#tool-search').focus(); } });
 renderTool();

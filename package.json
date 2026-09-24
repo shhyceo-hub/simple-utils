@@ -1,12 +1,12 @@
 {
   "name": "simple-utils",
   "version": "1.0.0",
-  "description": "브라우저 안에서 처리하는 8가지 사무용 정적 웹 유틸리티",
+  "description": "브라우저에서 처리하는 사무용 도구, 공학용 계산기, 함수 그래프와 한국 음력 변환",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "test": "node --test tests/utils.test.js",
+    "test": "node --test tests/*.test.js",
     "test:e2e": "playwright test"
   },
   "repository": {
@@ -25,5 +25,8 @@
     "@playwright/test": "^1.63.0",
     "vite": "^8.3.0"
   },
-  "private": true
+  "private": true,
+  "dependencies": {
+    "korean-lunar-calendar": "^0.4.0"
+  }
 }

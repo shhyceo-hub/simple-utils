@@ -55,7 +55,7 @@ test('search and filters work and mobile layout does not overflow', async ({ pag
   await expect(page.locator('.empty-search')).toBeVisible();
   await page.locator('#tool-search').fill('');
   await page.getByRole('button', { name: '계산', exact: true }).click();
-  await expect(page.locator('.tool-card')).toHaveCount(2);
+  await expect(page.locator('.tool-card')).toHaveCount(5);
   await page.locator('.tool-card[href="#dates"]').click();
   await expect(page.locator('#tool-title')).toHaveText('날짜 계산');
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBeTruthy();
